@@ -4,9 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 
 from app.db.session import engine
+
+# Import API routers
 from app.api.v1.endpoints.auth import router as auth_router
+from app.api.v1.endpoints.organizations import router as organizations_router
+from app.api.v1.endpoints.projects import router as projects_router
+from app.api.v1.endpoints.tasks import router as tasks_router
 
 
+# Initialize FastAPI application
 app = FastAPI(
     title="WorkSphere API",
     description="WorkSphere project management platform",
@@ -14,6 +20,7 @@ app = FastAPI(
 )
 
 
+# Configure CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -26,12 +33,32 @@ app.add_middleware(
 )
 
 
+# Register authentication routes
 app.include_router(
     auth_router,
     prefix="/api/v1"
 )
 
+# Register organization routes
+app.include_router(
+    organizations_router,
+    prefix="/api/v1"
+)
 
+# Register project routes
+app.include_router(
+    projects_router,
+    prefix="/api/v1"
+)
+
+# Register task routes
+app.include_router(
+    tasks_router,
+    prefix="/api/v1"
+)
+
+
+# Home endpoint
 @app.get("/")
 def home():
     return {
@@ -40,6 +67,7 @@ def home():
     }
 
 
+# Health check endpoint
 @app.get("/health")
 def health_check():
     return {

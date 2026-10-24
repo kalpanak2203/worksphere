@@ -2,119 +2,160 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { api } from "../lib/api";
+import {
+  Plus,
+  Building2,
+  ArrowRight,
+  Layers3,
+} from "lucide-react";
 
-
-type User = {
-  id: number;
-  full_name: string;
-  email: string;
-  is_active: boolean;
-  created_at: string;
-};
+import { api } from "@/lib/api";
+import {
+  authHeaders,
+  getCurrentUser,
+  logout,
+} from "@/lib/auth";
+import type {
+  Organization,
+  User,
+} from "@/lib/types";
 
 
 export default function DashboardPage() {
   const router = useRouter();
 
   const [user, setUser] = useState<User | null>(null);
+  const [organizations, setOrganizations] = useState<
+    Organization[]
+  >([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
 
   useEffect(() => {
-    const token = sessionStorage.getItem(
-      "access_token"
-    );
+    async function loadDashboard() {
+      try {
+        const currentUser = await getCurrentUser();
 
-    if (!token) {
-      router.replace("/login");
-      return;
+        const response = await api.get<Organization[]>(
+          "/api/v1/organizations/",
+          { headers: authHeaders() }
+        );
+
+        setUser(currentUser);
+        setOrganizations(response.data);
+
+      } catch {
+        setError("Unable to load your workspaces.");
+
+        if (!sessionStorage.getItem("access_token")) {
+          router.replace("/login");
+        }
+      } finally {
+        setLoading(false);
+      }
     }
 
-    api.get<User>("/api/v1/auth/me", {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-      .then((response) => {
-        setUser(response.data);
-      })
-      .catch(() => {
-        sessionStorage.removeItem("access_token");
-        setError("Session expired. Please log in again.");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-
+    loadDashboard();
   }, [router]);
 
 
-  function handleLogout() {
-    sessionStorage.removeItem("access_token");
-    router.replace("/login");
-  }
-
-
   if (loading) {
-    return (
-      <main className="p-8">
-        Loading your workspace...
-      </main>
-    );
+    return <div className="p-10">Loading...</div>;
   }
 
-  if (error) {
-    return (
-      <main className="min-h-screen p-8">
-        <p role="alert">{error}</p>
-        <button
-          onClick={() => router.replace("/login")}
-          className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
-        >
-          Go to login
-        </button>
-      </main>
-    );
-  }
 
   return (
-    <main className="min-h-screen bg-slate-950 p-8 text-white">
-      <div className="mx-auto max-w-5xl">
+    <main className="min-h-screen bg-slate-50 p-8 text-slate-900">
+      <div className="mx-auto max-w-6xl">
 
-        <div className="flex items-center justify-between">
-          <h1 className="text-3xl font-bold">
-            WorkSphere Dashboard
-          </h1>
+        <header className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Layers3 className="text-blue-600" size={32} />
+            <h1 className="text-2xl font-bold">
+              WorkSphere
+            </h1>
+          </div>
 
           <button
-            onClick={handleLogout}
-            className="rounded-lg bg-red-600 px-4 py-2"
+            onClick={logout}
+            className="rounded-lg border px-4 py-2"
           >
             Logout
           </button>
-        </div>
+        </header>
 
-        <div className="mt-10 rounded-xl bg-slate-900 p-8">
-          <h2 className="text-2xl font-semibold">
-            Welcome, {user?.full_name}!
+        <section className="mt-14">
+          <h2 className="text-3xl font-bold">
+            Welcome back, {user?.full_name}
           </h2>
 
-          <p className="mt-3 text-slate-400">
-            Email: {user?.email}
+          <p className="mt-2 text-slate-500">
+            Select a workspace to continue.
           </p>
+        </section>
 
-          <p className="mt-2 text-slate-400">
-            User ID: {user?.id}
+        {error && (
+          <p role="alert" className="mt-5 text-red-600">
+            {error}
           </p>
+        )}
 
-          <p className="mt-6 text-blue-400">
-            Your workspace is ready to be created.
-          </p>
+        <div className="mt-10 flex items-center justify-between">
+          <h3 className="text-xl font-semibold">
+            Your Workspaces
+          </h3>
+
+          <Link
+            href="/workspaces/new"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-white"
+          >
+            <Plus size={18} />
+            Create Workspace
+          </Link>
         </div>
 
+        <div className="mt-6 grid gap-5 md:grid-cols-3">
+          {organizations.map((org) => (
+            <Link
+              key={org.id}
+              href={`/workspace/${org.id}`}
+              className="rounded-xl border bg-white p-6 shadow-sm transition hover:shadow-md"
+            >
+              <Building2 className="text-blue-600" size={30} />
+
+              <h4 className="mt-5 text-xl font-semibold">
+                {org.name}
+              </h4>
+
+              <p className="mt-2 text-sm text-slate-500">
+                Workspace
+              </p>
+
+              <div className="mt-6 flex items-center gap-2 text-blue-600">
+                Open Workspace
+                <ArrowRight size={17} />
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {organizations.length === 0 && !error && (
+          <div className="mt-10 rounded-xl border border-dashed bg-white p-10 text-center">
+            <Building2 className="mx-auto text-slate-400" size={42} />
+
+            <h3 className="mt-4 text-xl font-semibold">
+              No workspaces yet
+            </h3>
+
+            <p className="mt-2 text-slate-500">
+              Create your first workspace to start managing projects.
+            </p>
+          </div>
+        )}
       </div>
     </main>
   );

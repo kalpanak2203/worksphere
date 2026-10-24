@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 
-import { api } from "../lib/api";
+import { api } from "@/lib/api";
 
 
 export default function LoginPage() {

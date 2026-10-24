@@ -5,7 +5,12 @@ from alembic import context
 
 from app.db.session import engine
 from app.db.base import Base
-from app.models import User
+
+# Import SQLAlchemy models to register their tables
+from app.models.user import User
+from app.models.organization import Organization
+from app.models.project import Project
+from app.models.task import Task
 
 
 config = context.config
@@ -19,9 +24,7 @@ target_metadata = Base.metadata
 
 def run_migrations_offline():
     context.configure(
-        url=engine.url.render_as_string(
-            hide_password=False
-        ),
+        url=engine.url.render_as_string(hide_password=False),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
